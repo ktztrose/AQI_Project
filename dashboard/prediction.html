@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>AQI Monitor — Prediction</title>
+<style>
+  :root {
+    --bg: #12161A;
+    --panel: #1B2126;
+    --panel-border: #2A333A;
+    --text: #E8EDF0;
+    --text-muted: #8A97A0;
+    --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+    --sans: 'Inter', -apple-system, sans-serif;
+
+    --good: #4E9F3D;
+    --satisfactory: #A8C43A;
+    --moderate: #E8C547;
+    --poor: #E8823C;
+    --very-poor: #D8453B;
+    --severe: #7A2A2A;
+  }
+
+  [data-theme="light"] {
+    --bg: #F4F6F8;
+    --panel: #FFFFFF;
+    --panel-border: #DCE1E6;
+    --text: #1B2126;
+    --text-muted: #5C6670;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    padding: 24px;
+    min-height: 100vh;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .content { max-width: 780px; margin: 0 auto; }
+
+  .topbar {
+    display: grid;
+    grid-template-columns: 340px 1fr auto;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 12px;
+  }
+  .topbar h1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+  .site-nav { display: flex; gap: 4px; margin-right: 16px; flex-wrap: wrap; }
+  .site-nav a {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+  }
+  .site-nav a:hover { color: var(--text); border-color: var(--panel-border); }
+  .site-nav a.active { color: var(--text); background: var(--panel); border-color: var(--panel-border); }
+
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .theme-toggle:hover { color: var(--text); border-color: var(--text-muted); }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .panel h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+  .panel p { line-height: 1.6; margin-bottom: 12px; font-size: 14px; }
+  .panel p:last-child { margin-bottom: 0; }
+
+  .coming-soon {
+    text-align: center;
+    padding: 48px 20px;
+  }
+  .coming-soon .big-label {
+    font-family: var(--mono);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--moderate);
+    margin-bottom: 12px;
+  }
+  .coming-soon .placeholder-value {
+    font-family: var(--mono);
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .coming-soon .placeholder-sub {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .model-card {
+    background: var(--bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .model-card h3 {
+    font-family: var(--mono);
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .model-card p {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .status-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: var(--moderate);
+    color: #12161A;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <h1>AIoT Air Quality &mdash; Prediction</h1>
+    <nav class="site-nav">
+      <a href="index.html">Live</a>
+      <a href="analytics.html">Analytics</a>
+      <a href="alerts.html">Alerts</a>
+      <a href="prediction.html" class="active">Prediction</a>
+      <a href="about.html">About</a>
+    </nav>
+    <div class="topbar-right">
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 Dark</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="panel">
+      <div class="coming-soon">
+        <div class="big-label">
+          <span class="status-badge">In Development</span>
+        </div>
+        <div class="placeholder-value">— —</div>
+        <div class="placeholder-sub">Next-hour AQI forecast &middot; not yet available</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>What this page will show</h2>
+      <p>Once enough historical data has been collected from the deployed sensor node, this page will display a short-horizon forecast of upcoming AQI — giving early warning of worsening air quality before it happens, rather than only reporting current conditions.</p>
+      <p>Forecasting begins after the hardware monitoring phase, once there is sufficient historical data (from both the sensor node and supplementary external datasets) to train reliable models.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Planned forecasting approach</h2>
+      <p>Three different modeling approaches will be trained and compared, and the best-performing one will be used to power this page's live forecast:</p>
+      <div class="model-grid">
+        <div class="model-card">
+          <h3>ARIMA</h3>
+          <p>Classical statistical baseline. Fast to train, good for stable, linear short-term trends.</p>
+        </div>
+        <div class="model-card">
+          <h3>Random Forest</h3>
+          <p>Ensemble machine learning using lag features and time-of-day. Offers interpretability via feature importance.</p>
+        </div>
+        <div class="model-card">
+          <h3>LSTM</h3>
+          <p>Deep learning sequence model. Best suited to capturing longer-range temporal pollution patterns, given enough data.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeToggle').textContent = theme === 'light' ? '☀️ Light' : '🌙 Dark';
+  localStorage.setItem('aqi-dashboard-theme', theme);
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'light' ? 'dark' : 'light');
+}
+applyTheme(localStorage.getItem('aqi-dashboard-theme') || 'dark');
+</script>
+</body>
+</html>

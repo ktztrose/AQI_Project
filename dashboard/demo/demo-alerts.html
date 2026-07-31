@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>AQI Monitor — Alerts</title>
+<style>
+  :root {
+    --bg: #12161A;
+    --panel: #1B2126;
+    --panel-border: #2A333A;
+    --text: #E8EDF0;
+    --text-muted: #8A97A0;
+    --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+    --sans: 'Inter', -apple-system, sans-serif;
+
+    --good: #4E9F3D;
+    --satisfactory: #A8C43A;
+    --moderate: #E8C547;
+    --poor: #E8823C;
+    --very-poor: #D8453B;
+    --severe: #7A2A2A;
+  }
+
+  [data-theme="light"] {
+    --bg: #F4F6F8;
+    --panel: #FFFFFF;
+    --panel-border: #DCE1E6;
+    --text: #1B2126;
+    --text-muted: #5C6670;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    padding: 24px;
+    min-height: 100vh;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .topbar {
+    display: grid;
+    grid-template-columns: 340px 1fr auto;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 12px;
+  }
+  .topbar h1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+  .site-nav { display: flex; gap: 4px; }
+  .site-nav a {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+  }
+  .site-nav a:hover { color: var(--text); border-color: var(--panel-border); }
+  .site-nav a.active { color: var(--text); background: var(--panel); border-color: var(--panel-border); }
+
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .theme-toggle:hover { color: var(--text); border-color: var(--text-muted); }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 8px 20px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--panel-border); }
+  th {
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  td { font-family: var(--mono); }
+  tr:last-child td { border-bottom: none; }
+
+  .aqi-cell { font-weight: 700; }
+
+  .empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .footer-note {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <h1>AIoT Air Quality &mdash; Alerts</h1>
+    <nav class="site-nav">
+      <a href="demo-index.html">Live</a>
+      <a href="demo-analytics.html">Analytics</a>
+      <a href="demo-alerts.html" class="active">Alerts</a>
+      <a href="demo-prediction.html">Prediction</a>
+      <a href="demo-about.html">About</a>
+    </nav>
+    <div class="topbar-right">
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 Dark</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <table id="alertTable">
+      <thead>
+        <tr><th>Date</th><th>Time</th><th>Dominant Element</th><th>AQI Stage</th><th>AQI</th></tr>
+      </thead>
+      <tbody id="alertBody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none;">No alerts in this dataset.</div>
+  </div>
+
+  <div class="footer-note">From the CPCB dataset &mdash; showing readings where AQI reached 200 or above (Poor and beyond).</div>
+
+<script>
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeToggle').textContent = theme === 'light' ? '☀️ Light' : '🌙 Dark';
+  localStorage.setItem('aqi-dashboard-theme', theme);
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'light' ? 'dark' : 'light');
+}
+applyTheme(localStorage.getItem('aqi-dashboard-theme') || 'dark');
+
+function categoryColor(aqi) {
+  if (aqi <= 100) return 'var(--satisfactory)';
+  if (aqi <= 200) return 'var(--moderate)';
+  if (aqi <= 300) return 'var(--poor)';
+  if (aqi <= 400) return 'var(--very-poor)';
+  return 'var(--severe)';
+}
+
+async function loadAlerts() {
+  try {
+    const res = await fetch('aqi_dataset.json');
+    const all = await res.json();
+    const rows = all.filter(r => r.aqi >= 200).slice(-100).reverse(); // most recent first, capped at 100 rows
+
+    const body = document.getElementById('alertBody');
+    const empty = document.getElementById('emptyState');
+    body.innerHTML = '';
+
+    if (rows.length === 0) {
+      empty.style.display = 'block';
+      document.getElementById('alertTable').style.display = 'none';
+      return;
+    }
+    empty.style.display = 'none';
+    document.getElementById('alertTable').style.display = 'table';
+
+    rows.forEach(row => {
+      const d = new Date(row.timestamp);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${d.toLocaleDateString()}</td>
+        <td>${d.toLocaleTimeString()}</td>
+        <td>${row.dominant ?? '--'}</td>
+        <td>${row.category ?? '--'}</td>
+        <td class="aqi-cell" style="color:${categoryColor(row.aqi)}">${Math.round(row.aqi)}</td>
+      `;
+      body.appendChild(tr);
+    });
+  } catch (e) {
+    document.getElementById('emptyState').textContent = 'Could not load aqi_dataset.json.';
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('alertTable').style.display = 'none';
+    console.error(e);
+  }
+}
+
+loadAlerts();
+</script>
+</body>
+</html>

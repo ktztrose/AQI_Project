@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>AQI Monitor — About</title>
+<style>
+  :root {
+    --bg: #12161A;
+    --panel: #1B2126;
+    --panel-border: #2A333A;
+    --text: #E8EDF0;
+    --text-muted: #8A97A0;
+    --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+    --sans: 'Inter', -apple-system, sans-serif;
+
+    --good: #4E9F3D;
+    --satisfactory: #A8C43A;
+    --moderate: #E8C547;
+    --poor: #E8823C;
+    --very-poor: #D8453B;
+    --severe: #7A2A2A;
+  }
+
+  [data-theme="light"] {
+    --bg: #F4F6F8;
+    --panel: #FFFFFF;
+    --panel-border: #DCE1E6;
+    --text: #1B2126;
+    --text-muted: #5C6670;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    padding: 24px;
+    min-height: 100vh;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .content { max-width: 780px; margin: 0 auto; }
+
+  .topbar {
+    display: grid;
+    grid-template-columns: 340px 1fr auto;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 12px;
+  }
+  .topbar h1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+  .site-nav { display: flex; gap: 4px; margin-right: 16px; }
+  .site-nav a {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+  }
+  .site-nav a:hover { color: var(--text); border-color: var(--panel-border); }
+  .site-nav a.active { color: var(--text); background: var(--panel); border-color: var(--panel-border); }
+
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .theme-toggle:hover { color: var(--text); border-color: var(--text-muted); }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .panel h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+
+  .panel p { line-height: 1.6; margin-bottom: 12px; font-size: 14px; }
+  .panel p:last-child { margin-bottom: 0; }
+
+  .sensor-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .sensor-table th, .sensor-table td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .sensor-table th {
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  .sensor-table td:first-child { font-family: var(--mono); }
+
+  .category-scale {
+    display: flex;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 12px 0;
+    height: 36px;
+  }
+  .category-scale > div {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: #12161A;
+    font-weight: 600;
+  }
+
+  .scope-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 700px) { .scope-grid { grid-template-columns: 1fr; } }
+  .scope-grid h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .scope-grid ul { padding-left: 18px; font-size: 13px; line-height: 1.7; }
+  .scope-in { color: var(--good); }
+  .scope-out { color: var(--very-poor); }
+
+  code {
+    font-family: var(--mono);
+    background: var(--bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <h1>AIoT Air Quality &mdash; About</h1>
+    <nav class="site-nav">
+      <a href="demo-index.html">Live</a>
+      <a href="demo-analytics.html">Analytics</a>
+      <a href="demo-alerts.html">Alerts</a>
+      <a href="demo-prediction.html">Prediction</a>
+      <a href="demo-about.html" class="active">About</a>
+    </nav>
+    <div class="topbar-right">
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 Dark</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="panel">
+      <h2>What this system does</h2>
+      <p>This is a low-cost AIoT air quality monitoring node built around an ESP32 microcontroller and four sensors. It continuously measures particulate matter, carbon monoxide, and ammonia, computes a composite Air Quality Index (AQI), and displays it live — with alerts triggered both on the device itself and on this dashboard.</p>
+      <p>It was built to address a real gap: many rapidly urbanizing cities across India and Myanmar have very few official air quality monitoring stations, and existing systems rarely offer real-time analytics or predictive capability. This project demonstrates that a low-cost sensor node can still produce a methodologically sound, standards-aligned AQI reading.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Sensors used</h2>
+      <table class="sensor-table">
+        <tr><th>Sensor</th><th>Measures</th><th>Method</th></tr>
+        <tr><td>PMS5003</td><td>PM1.0, PM2.5, PM10</td><td>Laser scattering</td></tr>
+        <tr><td>MQ-7</td><td>Carbon monoxide (CO)</td><td>Semiconductor gas sensor</td></tr>
+        <tr><td>MQ-135</td><td>Ammonia (NH3)</td><td>Semiconductor gas sensor</td></tr>
+        <tr><td>DHT11</td><td>Temperature, humidity</td><td>Digital sensor (used for context/compensation, not AQI itself)</td></tr>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>How the AQI is calculated</h2>
+      <p>Each pollutant reading is converted into a sub-index between 0 and 500, using the Central Pollution Control Board's (CPCB) official breakpoint tables and linear interpolation formula — the same methodology used by India's government monitoring stations.</p>
+      <p>The final AQI reported is the <strong>highest</strong> of the four sub-indices, not an average — consistent with CPCB's own rule that overall air quality is defined by whichever pollutant is currently most concerning.</p>
+      <div class="category-scale">
+        <div style="background: var(--good)">Good</div>
+        <div style="background: var(--satisfactory)">Satisfactory</div>
+        <div style="background: var(--moderate)">Moderate</div>
+        <div style="background: var(--poor)">Poor</div>
+        <div style="background: var(--very-poor)">Very Poor</div>
+        <div style="background: var(--severe)">Severe</div>
+      </div>
+      <p>This color scale is used consistently across the live dashboard and analytics pages.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Scope — what's measured, and what isn't</h2>
+      <p>CPCB's official AQI standard uses eight pollutants: PM2.5, PM10, NO2, SO2, CO, O3, NH3, and Pb. This system measures four of them.</p>
+      <div class="scope-grid">
+        <div>
+          <h3 class="scope-in">In scope</h3>
+          <ul>
+            <li>PM2.5</li>
+            <li>PM10</li>
+            <li>Carbon monoxide (CO)</li>
+            <li>Ammonia (NH3)</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="scope-out">Not measured</h3>
+          <ul>
+            <li>Nitrogen dioxide (NO2)</li>
+            <li>Sulfur dioxide (SO2)</li>
+            <li>Ozone (O3)</li>
+            <li>Lead (Pb)</li>
+          </ul>
+        </div>
+      </div>
+      <p>This isn't an oversight — electrochemical sensors capable of measuring NO2, SO2, and O3 accurately cost significantly more than the sensors used here, which would undermine the goal of a genuinely low-cost, replicable system. CPCB's own methodology only requires a minimum of 3 pollutants (including one particulate measurement) for a valid composite AQI — a requirement this system satisfies.</p>
+      <p>The reading shown here should be understood as a <strong>composite AQI derived from available low-cost sensor data</strong>, not a claim of full regulatory equivalence.</p>
+    </div>
+
+    <div class="panel">
+      <h2>System architecture</h2>
+      <p>Sensor readings are taken by the ESP32 every 60 seconds, published over MQTT to a broker, picked up by a Python backend that stores them in a database and serves them through a REST API, which this dashboard polls every 30 seconds to stay current.</p>
+      <p><code>Sensors → ESP32 → MQTT broker → Backend (Flask + SQLite) → Dashboard</code></p>
+    </div>
+
+  </div>
+
+<script>
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeToggle').textContent = theme === 'light' ? '☀️ Light' : '🌙 Dark';
+  localStorage.setItem('aqi-dashboard-theme', theme);
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'light' ? 'dark' : 'light');
+}
+applyTheme(localStorage.getItem('aqi-dashboard-theme') || 'dark');
+</script>
+</body>
+</html>

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>AQI Monitor</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #12161A;
+    --panel: #1B2126;
+    --panel-border: #2A333A;
+    --text: #E8EDF0;
+    --text-muted: #8A97A0;
+    --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+    --sans: 'Inter', -apple-system, sans-serif;
+
+    --good: #4E9F3D;
+    --satisfactory: #A8C43A;
+    --moderate: #E8C547;
+    --poor: #E8823C;
+    --very-poor: #D8453B;
+    --severe: #7A2A2A;
+  }
+
+  [data-theme="light"] {
+    --bg: #F4F6F8;
+    --panel: #FFFFFF;
+    --panel-border: #DCE1E6;
+    --text: #1B2126;
+    --text-muted: #5C6670;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    padding: 24px;
+    min-height: 100vh;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .panel, .metric-row, .scale-bar, .live-indicator, .alert-banner {
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .theme-toggle:hover {
+    color: var(--text);
+    border-color: var(--text-muted);
+  }
+
+  .site-nav {
+    display: flex;
+    gap: 4px;
+    margin-right: 16px;
+  }
+  .site-nav a {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+  }
+  .site-nav a:hover {
+    color: var(--text);
+    border-color: var(--panel-border);
+  }
+  .site-nav a.active {
+    color: var(--text);
+    background: var(--panel);
+    border-color: var(--panel-border);
+  }
+
+  .topbar {
+    display: grid;
+    grid-template-columns: 340px 1fr auto;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 12px;
+  }
+  .topbar h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+  .topbar h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--good);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(78,159,61,0.5); }
+    50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(78,159,61,0); }
+  }
+
+  .alert-banner {
+    display: none;
+    background: var(--very-poor);
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .alert-banner.show { display: block; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 800px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+
+  .panel-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  /* AQI gauge - segmented arc styled like a sensor scale */
+  .gauge-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 0 0 0;
+  }
+
+  #gaugeValue {
+    font-family: var(--mono);
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  #gaugeCategory {
+    font-family: var(--mono);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 6px;
+    padding: 3px 10px;
+    border-radius: 3px;
+  }
+
+  .scale-bar {
+    width: 100%;
+    height: 10px;
+    border-radius: 5px;
+    margin-top: 20px;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+  .scale-bar > div { height: 100%; }
+  .scale-marker {
+    position: absolute;
+    top: -6px;
+    width: 2px;
+    height: 22px;
+    background: #fff;
+    box-shadow: 0 0 6px rgba(255,255,255,0.8);
+    transition: left 0.6s ease;
+  }
+  .scale-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  .metrics-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 10px;
+  }
+  .metric-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .metric-name {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .metric-value {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .metric-unit {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+
+  .chart-panel {
+    grid-column: 1 / -1;
+  }
+
+  .forecast-panel {
+    grid-column: 1 / -1;
+  }
+  .forecast-content {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .forecast-value {
+    font-family: var(--mono);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .forecast-note {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .forecast-note a {
+    color: var(--moderate);
+    text-decoration: none;
+  }
+  .forecast-note a:hover {
+    text-decoration: underline;
+  }
+
+  #trendChart {
+    max-height: 280px;
+  }
+
+  .footer-note {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <h1>AIoT Air Quality &mdash; Live Node Feed</h1>
+    <nav class="site-nav">
+      <a href="index.html" class="active">Live</a>
+      <a href="analytics.html">Analytics</a>
+      <a href="alerts.html">Alerts</a>
+      <a href="prediction.html">Prediction</a>
+      <a href="about.html">About</a>
+    </nav>
+    <div class="topbar-right">
+      <div class="live-indicator">
+        <div class="dot" id="liveDot"></div>
+        <span id="lastUpdated">connecting...</span>
+      </div>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙 Dark</button>
+    </div>
+  </div>
+
+  <div class="alert-banner" id="alertBanner">
+    ⚠ AQI has crossed into the alert threshold. Sensitive groups should limit outdoor exposure.
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-label">Current AQI</div>
+      <div class="gauge-wrap">
+        <div id="gaugeValue">--</div>
+        <div id="gaugeCategory">Awaiting data</div>
+        <div class="scale-bar">
+          <div style="flex:50; background: var(--good)"></div>
+          <div style="flex:50; background: var(--satisfactory)"></div>
+          <div style="flex:100; background: var(--moderate)"></div>
+          <div style="flex:100; background: var(--poor)"></div>
+          <div style="flex:100; background: var(--very-poor)"></div>
+          <div style="flex:100; background: var(--severe)"></div>
+          <div class="scale-marker" id="scaleMarker" style="left:0%"></div>
+        </div>
+        <div class="scale-labels">
+          <span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">Sensor Readings</div>
+      <div class="metrics-stack">
+        <div class="metric-row">
+          <span class="metric-name">PM2.5</span>
+          <span><span class="metric-value" id="v-pm25">--</span><span class="metric-unit">µg/m³</span></span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">PM10</span>
+          <span><span class="metric-value" id="v-pm10">--</span><span class="metric-unit">µg/m³</span></span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">CO</span>
+          <span><span class="metric-value" id="v-co">--</span><span class="metric-unit">ppm</span></span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">NH3</span>
+          <span><span class="metric-value" id="v-nh3">--</span><span class="metric-unit">ppm</span></span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Temp / Humidity</span>
+          <span><span class="metric-value" id="v-temp">--</span><span class="metric-unit">°C</span> / <span class="metric-value" id="v-hum">--</span><span class="metric-unit">%</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel forecast-panel">
+      <div class="panel-label">Next-Hour Forecast</div>
+      <div class="forecast-content">
+        <div class="forecast-value" id="forecastValue">— —</div>
+        <div class="forecast-note">Prediction model in development — see <a href="prediction.html">Prediction</a> page</div>
+      </div>
+    </div>
+
+    <div class="panel chart-panel">
+      <div class="panel-label">AQI Trend (last 24h)</div>
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+
+  <div class="footer-note">Composite AQI derived from PM2.5, PM10, CO, NH3 sub-indices &mdash; low-cost sensor prototype, not an official regulatory reading.</div>
+
+<script>
+const BACKEND_URL = "http://localhost:5000"; // change to your backend's address
+const REFRESH_MS = 30000;
+
+const categoryColor = (aqi) => {
+  if (aqi <= 50) return getComputedStyle(document.documentElement).getPropertyValue('--good');
+  if (aqi <= 100) return getComputedStyle(document.documentElement).getPropertyValue('--satisfactory');
+  if (aqi <= 200) return getComputedStyle(document.documentElement).getPropertyValue('--moderate');
+  if (aqi <= 300) return getComputedStyle(document.documentElement).getPropertyValue('--poor');
+  if (aqi <= 400) return getComputedStyle(document.documentElement).getPropertyValue('--very-poor');
+  return getComputedStyle(document.documentElement).getPropertyValue('--severe');
+};
+
+let trendChart;
+
+function initChart() {
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'AQI',
+        data: [],
+        borderColor: '#E8C547',
+        backgroundColor: 'rgba(232,197,71,0.08)',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-muted'), maxTicksLimit: 8 }, grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--panel-border') } },
+        y: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-muted') }, grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--panel-border') }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+async function refreshLatest() {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/latest`);
+    if (!res.ok) throw new Error('no data');
+    const d = await res.json();
+
+    document.getElementById('gaugeValue').textContent = Math.round(d.aqi);
+    document.getElementById('gaugeValue').style.color = categoryColor(d.aqi);
+    document.getElementById('gaugeCategory').textContent = d.category;
+    document.getElementById('gaugeCategory').style.background = categoryColor(d.aqi);
+    document.getElementById('gaugeCategory').style.color = '#12161A';
+
+    document.getElementById('scaleMarker').style.left = Math.min(100, (d.aqi / 500) * 100) + '%';
+
+    document.getElementById('v-pm25').textContent = d.pm25?.toFixed(1) ?? '--';
+    document.getElementById('v-pm10').textContent = d.pm10?.toFixed(1) ?? '--';
+    document.getElementById('v-co').textContent = d.co_ppm?.toFixed(2) ?? '--';
+    document.getElementById('v-nh3').textContent = d.nh3_ppm?.toFixed(2) ?? '--';
+    document.getElementById('v-temp').textContent = d.temp?.toFixed(1) ?? '--';
+    document.getElementById('v-hum').textContent = d.humidity?.toFixed(0) ?? '--';
+
+    document.getElementById('lastUpdated').textContent =
+      'Node ' + d.node_id + ' · updated ' + new Date(d.timestamp + 'Z').toLocaleTimeString();
+
+    const banner = document.getElementById('alertBanner');
+    banner.classList.toggle('show', d.alert);
+
+  } catch (e) {
+    document.getElementById('lastUpdated').textContent = 'no data / backend unreachable';
+    document.getElementById('liveDot').style.background = '#D8453B';
+  }
+}
+
+async function refreshHistory() {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/history?hours=24`);
+    const rows = await res.json();
+    trendChart.data.labels = rows.map(r => new Date(r.timestamp + 'Z').toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+    trendChart.data.datasets[0].data = rows.map(r => r.aqi);
+    trendChart.update();
+  } catch (e) {
+    console.error('history fetch failed', e);
+  }
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeToggle').textContent = theme === 'light' ? '☀️ Light' : '🌙 Dark';
+  localStorage.setItem('aqi-dashboard-theme', theme);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'light' ? 'dark' : 'light');
+}
+
+// Restore saved theme on load (defaults to dark if none saved)
+applyTheme(localStorage.getItem('aqi-dashboard-theme') || 'dark');
+
+initChart();
+refreshLatest();
+refreshHistory();
+setInterval(refreshLatest, REFRESH_MS);
+setInterval(refreshHistory, REFRESH_MS * 4);
+</script>
+</body>
+</html>
