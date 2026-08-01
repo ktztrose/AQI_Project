@@ -224,6 +224,45 @@
     </div>
 
     <div class="panel">
+      <h2>Health advisory by AQI category</h2>
+      <p>Each AQI category carries an official health impact description, as defined by CPCB. Use this to understand what a given reading actually means for you and your family.</p>
+      <table class="sensor-table">
+        <tr><th>Category</th><th>AQI Range</th><th>Health Impact</th></tr>
+        <tr>
+          <td style="color:var(--good);font-weight:600;">Good</td>
+          <td>0–50</td>
+          <td>Air quality poses little or no risk. Minimal health impact.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--satisfactory);font-weight:600;">Satisfactory</td>
+          <td>51–100</td>
+          <td>Minor breathing discomfort to sensitive individuals. Generally acceptable for the broader population.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--moderate);font-weight:600;">Moderate</td>
+          <td>101–200</td>
+          <td>Breathing discomfort to people with lung disease, asthma, children, and older adults. Sensitive groups should reduce prolonged outdoor exertion.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--poor);font-weight:600;">Poor</td>
+          <td>201–300</td>
+          <td>Breathing discomfort to most people on prolonged exposure. Outdoor activity should be moderated, especially for at-risk groups.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--very-poor);font-weight:600;">Very Poor</td>
+          <td>301–400</td>
+          <td>Increased risk of respiratory illness on prolonged exposure. Children, elderly, and those with existing illness need added protection.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--severe);font-weight:600;">Severe</td>
+          <td>401–500</td>
+          <td>Significant health effects even on healthy individuals. Serious impact on people with existing respiratory or cardiovascular disease.</td>
+        </tr>
+      </table>
+      <p style="margin-top:12px;">As a general rule: check the AQI before outdoor exercise, school commuting, or scheduling time outside for vulnerable family members — especially children, the elderly, and anyone with an existing respiratory or heart condition.</p>
+    </div>
+
+    <div class="panel">
       <h2>Scope — what's measured, and what isn't</h2>
       <p>CPCB's official AQI standard uses eight pollutants: PM2.5, PM10, NO2, SO2, CO, O3, NH3, and Pb. This system measures four of them.</p>
       <div class="scope-grid">
@@ -248,12 +287,6 @@
       </div>
       <p>This isn't an oversight — electrochemical sensors capable of measuring NO2, SO2, and O3 accurately cost significantly more than the sensors used here, which would undermine the goal of a genuinely low-cost, replicable system. CPCB's own methodology only requires a minimum of 3 pollutants (including one particulate measurement) for a valid composite AQI — a requirement this system satisfies.</p>
       <p>The reading shown here should be understood as a <strong>composite AQI derived from available low-cost sensor data</strong>, not a claim of full regulatory equivalence.</p>
-    </div>
-
-    <div class="panel">
-      <h2>System architecture</h2>
-      <p>Sensor readings are taken by the ESP32 every 60 seconds, published over MQTT to a broker, picked up by a Python backend that stores them in a database and serves them through a REST API, which this dashboard polls every 30 seconds to stay current.</p>
-      <p><code>Sensors → ESP32 → MQTT broker → Backend (Flask + SQLite) → Dashboard</code></p>
     </div>
 
   </div>
